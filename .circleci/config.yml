@@ -1,0 +1,18 @@
+version: 2
+jobs:
+  build:
+    branches:
+        only:
+          - master
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: set up
+          command: |
+            docker pull gcr.io/kaniko-project/executor:debug
+            echo "$RAILS_MASTER_KEY" > ./config/master.key
+            echo "{\"credHelpers\":{\"${AWS_ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com\":\"ecr-login\"}}" > /tmp/config.json
+      - run:
+          command: |
+            docker run -it -v /tmp/config.json:/kaniko/.docker/config.json -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY -v $(pwd):/build gcr.io/kaniko-project/executor:debug --cache=true --context /build --dockerfile /build/Dockerfile --destination ${AWS_ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/kaniko-example:$CIRCLE_SHA1
