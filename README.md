@@ -1,24 +1,19 @@
-# README
+# Usage example using Kaniko
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Provides examples of how to use Kaniko in using Travis CI, Circle CI, and GitLab CI.
 
-Things you may want to cover:
+In addition, it is described here on the premise of using Amazon Elastic Container Registry.
 
-* Ruby version
+## In the case of Travis CI
 
-* System dependencies
+Describes how to run Kaniko's Docker image. Please see [here](https://github.com/chimame/kaniko-example/blob/master/.travis.yml) for details.
 
-* Configuration
+## In the case of Circle CI
 
-* Database creation
+Describes how to run Kaniko's Docker image. Please see [here](https://github.com/chimame/kaniko-example/blob/master/.circleci/config.yml) for details.
 
-* Database initialization
+## In the case of GitLab CI
 
-* How to run the test suite
+In the case of GitLab, the usage [example](https://docs.gitlab.com/ee/ci/docker/using_kaniko.html) is described officially.
 
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+I changed a little to use ECR.
