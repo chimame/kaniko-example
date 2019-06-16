@@ -1,0 +1,14 @@
+stages:
+  - build
+
+build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - echo "{\"credHelpers\":{\"${AWS_ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com\":\"ecr-login\"}}" > /kaniko/.docker/config.json
+    - echo "$RAILS_MASTER_KEY" > ${CI_PROJECT_DIR}/config/master.key
+    - /kaniko/executor --cache=true --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination ${AWS_ACCOUNT_ID}.dkr.ecr.ap-northeast-1.amazonaws.com/kaniko-example:$CI_COMMIT_SHA
+  only:
+    - master
