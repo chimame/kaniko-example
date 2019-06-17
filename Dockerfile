@@ -1,41 +1,14 @@
-# install npm package
-FROM node:10.14.2-alpine AS install-npm
+# build JavaScript for webpack
+FROM node:10.14.2-alpine AS build-webpack
 
 RUN mkdir /app
 WORKDIR /app
+
+ENV NODE_ENV production
 
 COPY package.json /app/package.json
 COPY yarn.lock /app/yarn.lock
 RUN yarn install
-
-# install ruby gems
-FROM ruby:2.6.3-alpine AS install-gem
-
-RUN apk add --no-cache tzdata sqlite-dev && \
-  cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
-
-RUN mkdir /app
-WORKDIR /app
-
-ARG BUNDLE_OPTIONS
-
-COPY Gemfile /app/Gemfile
-COPY Gemfile.lock /app/Gemfile.lock
-RUN apk add --no-cache --virtual .rails-builddeps alpine-sdk && \
-  bundle install -j4 --path vendor/bundle ${BUNDLE_OPTIONS} && \
-  apk del .rails-builddeps
-
-# build JavaScript for webpack
-FROM node:10.14.2-alpine AS build-webpack
-
-ENV NODE_ENV production
-
-RUN mkdir /app
-WORKDIR /app
-
-COPY package.json /app/package.json
-COPY yarn.lock /app/yarn.lock
-COPY --from=install-npm /app/node_modules /app/node_modules
 
 ## webpack build
 COPY ./app/javascript /app/app/javascript
@@ -46,25 +19,29 @@ COPY ./babel.config.js /app/babel.config.js
 COPY ./postcss.config.js /app/postcss.config.js
 RUN yarn run webpack --config config/webpack/${NODE_ENV}.js
 
-# build JavaScript for assets precompile
+# install ruby gems
 FROM ruby:2.6.3-alpine AS build-asset
 
 RUN apk add --no-cache tzdata sqlite-dev && \
   cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
-
-ENV LANG C.UTF-8
-ENV RAILS_ENV production
-ENV WEBPACKER_PRECOMPILE=false
 
 RUN mkdir /app
 WORKDIR /app
 
 ARG BUNDLE_OPTIONS
 
+ENV LANG C.UTF-8
+ENV RAILS_ENV production
+ENV WEBPACKER_PRECOMPILE=false
+
 COPY Gemfile /app/Gemfile
 COPY Gemfile.lock /app/Gemfile.lock
-COPY --from=install-gem /app/vendor/bundle /app/vendor/bundle
-RUN bundle install -j4 --path vendor/bundle ${BUNDLE_OPTIONS}
+RUN apk add --no-cache --virtual .rails-builddeps alpine-sdk && \
+  bundle install -j4 --path vendor/bundle ${BUNDLE_OPTIONS} && \
+  apk del .rails-builddeps
+
+## copy npm packages
+COPY --from=build-webpack /app/node_modules /app/node_modules
 
 ## asset build
 COPY ./app/assets /app/app/assets
@@ -97,7 +74,7 @@ WORKDIR /app
 
 COPY Gemfile /app/Gemfile
 COPY Gemfile.lock /app/Gemfile.lock
-COPY --from=install-gem /app/vendor/bundle /app/vendor/bundle
+COPY --from=build-asset /app/vendor/bundle /app/vendor/bundle
 RUN bundle install -j4 --path vendor/bundle ${BUNDLE_OPTIONS}
 
 COPY --from=build-asset /app/public /app/public
